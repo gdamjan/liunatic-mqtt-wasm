@@ -3,9 +3,9 @@ use std::time::Duration;
 use lunatic::Mailbox;
 use mqtt::control::ConnectReturnCode;
 use mqtt::packet::{
-    ConnackPacket, ConnectPacket, DisconnectPacket, PingrespPacket, VariablePacket, PingreqPacket,
+    ConnackPacket, ConnectPacket, DisconnectPacket, PingrespPacket, VariablePacket, PingreqPacket, SubscribePacket,
 };
-use mqtt::{Decodable, Encodable};
+use mqtt::{Decodable, Encodable, TopicFilter, QualityOfService};
 
 #[lunatic::main]
 fn main(_: Mailbox<()>) {
@@ -30,12 +30,18 @@ fn main(_: Mailbox<()>) {
         );
     }
 
+    // must send periodic pings to the mqtt broker, otherwise they'll disconnect us
     let pinger = lunatic::spawn_link!(|stream = {stream.clone()}| {
         loop {
             lunatic::sleep(Duration::from_secs((HEARTBEAT).into()));
             PingreqPacket::new().encode(&mut stream).expect("Ping request sending failed");
         }
     });
+
+    let everything = vec![(TopicFilter::new("#").unwrap(), QualityOfService::Level0)];
+    SubscribePacket::new(10, everything)
+        .encode(&mut stream)
+        .expect("Failed to send SubscribePacket");
 
     println!("Loop started");
     loop {
@@ -49,9 +55,14 @@ fn main(_: Mailbox<()>) {
             VariablePacket::DisconnectPacket(..) => {
                 break;
             }
+            VariablePacket::PublishPacket(publish) => {
+                println!("{:?} => {:?}", publish.topic_name(), publish.payload());
+            }
             _ => {},
         };
     }
+
+    println!("Shutting down");
     pinger.kill();
     DisconnectPacket::default()
         .encode(&mut stream)
