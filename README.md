@@ -12,18 +12,15 @@ Marketing blurb
 
 ## Quick start
 
+Install [`lunatic`-runtime](https://github.com/lunatic-solutions/lunatic) and [mosquitto](https://github.com/eclipse/mosquitto/),
 ```
 sudo systemctl start mosquitto.service
 rustup target add wasm32-wasi
 cargo run
 ```
 
-## References
-* https://github.com/lunatic-solutions/lunatic-rs
-* https://github.com/SquattingSocrates/mqtt_packet
-* https://github.com/SquattingSocrates/m-cutie-tea
 
 ## Maybe
-* reload
+* automatic reloads
 * web dashboard
 * filtering/routing (instead of full broadcast)
